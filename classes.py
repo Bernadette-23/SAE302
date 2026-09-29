@@ -15,3 +15,4 @@ ambulance=Vehicules(
 )
 
 print(ambulance)
+print(Vehicules())
