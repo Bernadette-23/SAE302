@@ -11,6 +11,6 @@ client, adresse = serveur.accept()
 print("Client connecté !")
 message = client.recv(1024)
 print(message.decode())
-client.send("Message reçu par le serveur".encode())
+client.send("Message reçu par le serveur ".encode())
 
 serveur.close()

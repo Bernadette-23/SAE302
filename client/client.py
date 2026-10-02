@@ -7,6 +7,6 @@ client.connect(('127.0.0.1', 5000))
 
 client.send("URGENCE".encode())
 reponse = client.recv(1024)
-print("Réponse du serveur : ", reponse.decode())
+print("Réponse du serveur :", reponse.decode())
 
 client.close()
