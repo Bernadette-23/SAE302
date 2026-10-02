@@ -7,7 +7,7 @@ class Route:
 
 
     def __str__(self):
-        return f"La route de {self.depart} à {self.arrivee} d'un distance de {self.distance}km et une durée de {self.temps} min "
+        return f"La route de {self.depart} à {self.arrivee} d'un distance de {self.distance}km et une durée de {self.temps} min"
 
 
 
