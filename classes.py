@@ -1,3 +1,7 @@
+import sys
+from PySide6.QtWidgets import QApplication, QWidget, QLabel, QPushButton, QComboBox, QVBoxLayout
+
+
 class Vehicules:
     def __init__(self,identifiant:int,position,destination,vitesse:int):
         self.__identifiant = identifiant
@@ -96,3 +100,81 @@ chemin, cout = dijkstra(routes, "A", "H")
 
 print("Chemin :", " -> ".join(chemin))
 print("Coût total :", cout)
+
+# -------------------------
+# INTERFACE
+# -------------------------
+
+app = QApplication(sys.argv)
+
+fenetre = QWidget()
+fenetre.setWindowTitle("Gestion ambulance")
+fenetre.resize(400, 300)
+
+
+# Titre
+titre = QLabel("Gestion de l'ambulance")
+
+
+# Choix du départ
+label_depart = QLabel("Carrefour de départ :")
+
+depart = QComboBox()
+depart.addItems(routes.keys())
+
+
+# Choix de la destination
+label_destination = QLabel("Carrefour de destination :")
+
+destination = QComboBox()
+destination.addItems(routes.keys())
+
+
+# Bouton
+bouton = QPushButton("Calculer le trajet")
+
+
+# Résultat
+resultat = QLabel("Résultat :")
+
+
+# Fonction appelée quand on clique sur le bouton
+def calculer():
+
+    d = depart.currentText()
+    a = destination.currentText()
+
+    chemin, cout = dijkstra(routes, d, a)
+
+    resultat.setText(
+        "Trajet : " + " → ".join(chemin) +
+        "\nCoût total : " + str(cout)
+    )
+
+
+# Relier le bouton à la fonction
+bouton.clicked.connect(calculer)
+
+
+# Organisation de la fenêtre
+layout = QVBoxLayout()
+
+layout.addWidget(titre)
+
+layout.addWidget(label_depart)
+layout.addWidget(depart)
+
+layout.addWidget(label_destination)
+layout.addWidget(destination)
+
+layout.addWidget(bouton)
+
+layout.addWidget(resultat)
+
+fenetre.setLayout(layout)
+
+
+# Afficher la fenêtre
+fenetre.show()
+
+sys.exit(app.exec())
