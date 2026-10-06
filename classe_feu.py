@@ -1,31 +1,49 @@
 class Feu:
-    def __init__(self, id, position, couleur):
-        self.id = id
-        self.position = position
-        self.couleur = couleur
+    def __init__(self, id : int, position : str, couleur : str):
+        self.__id = id
+        self.__position = position
+        self.__couleur = couleur
 
     def passer_au_vert(self):
-        self.couleur = "vert"
+        self.__couleur = "vert"
 
     def passer_au_rouge(self):
-        self.couleur = "rouge"
+        self.__couleur = "rouge"
 
     def __str__(self):
-        return f"Le feu n°{self.id} est actuellement de couleur {self.couleur}"
+        return f"Le feu n°{self.__id} est actuellement de couleur {self.__couleur}"
 
-
-"""
-classe Carrefour qui gere les feux mais pas encore sure :*
-
-* fait passer les feux des routes perpendiculaire au rouge
 
 class Carrefour:
-    def __init__(self, feux):
-        self.feux = feux
+    def __init__(self, id, feux):
+        self.__id = id
+        self.__feux = feux
 
-    def priorite_urgence(self, feu_prioritaire):
-        for feu in self.feux:
-            feu.passer_au_rouge()
+    def __str__(self):
+        return f"Carrefour {self.__id} avec {len(self.__feux)} feux"
 
-        feu_prioritaire.passer_au_vert()
-"""
+
+if __name__ == '__main__':
+    feu2 = Feu(2, "A-B", "rouge")
+    feu4 = Feu(4, "B-E", "rouge")
+    feu6 = Feu(6, "H-E", "rouge")
+    feu8 = Feu(8, "E-B", "rouge")
+
+    feu1 = Feu(1, "C-B", "rouge")
+    feu3 = Feu(3, "D-B", "rouge")
+    feu5 = Feu(5, "F-E", "rouge")
+    feu7 = Feu(7, "G-E", "rouge")
+
+    carrefourE = Carrefour(
+        1,
+        [feu4, feu6, feu5, feu7]
+    )
+
+    carrefourB = Carrefour(
+        2,
+        [feu1, feu2, feu3, feu8]
+    )
+
+    print(carrefourE)
+    print(carrefourB)
+
