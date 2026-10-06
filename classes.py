@@ -1,6 +1,15 @@
 import sys
-from PySide6.QtWidgets import QApplication, QWidget, QLabel, QPushButton, QComboBox, QVBoxLayout
+from PyQt6.QtWidgets import QApplication, QWidget
+'''from PySide6.QtWidgets import QApplication, QWidget, QLabel, QPushButton, QComboBox, QVBoxLayout'''
 
+app=QApplication(sys.argv)
+root=QWidget()
+root.resize(400, 300)
+root.setWindowTitle("Test Ambulance")
+root.show()
+
+if __name__=='__main__':
+    sys.exit(app.exec())
 
 class Vehicules:
     def __init__(self,identifiant:int,position,destination,vitesse:int):
@@ -101,6 +110,8 @@ chemin, cout = dijkstra(routes, "A", "H")
 print("Chemin :", " -> ".join(chemin))
 print("Coût total :", cout)
 
+
+'''
 # -------------------------
 # INTERFACE
 # -------------------------
@@ -111,10 +122,8 @@ fenetre = QWidget()
 fenetre.setWindowTitle("Gestion ambulance")
 fenetre.resize(400, 300)
 
-
 # Titre
 titre = QLabel("Gestion de l'ambulance")
-
 
 # Choix du départ
 label_depart = QLabel("Carrefour de départ :")
@@ -177,4 +186,4 @@ fenetre.setLayout(layout)
 # Afficher la fenêtre
 fenetre.show()
 
-sys.exit(app.exec())
+sys.exit(app.exec())'''
