@@ -9,8 +9,21 @@ print("Serveur en attente d'une connexion...")
 
 client, adresse = serveur.accept()
 print("Client connecté !")
-message = client.recv(1024)
-print(message.decode())
+message = client.recv(1024).decode()
+
+donnees = message.split(";")
+
+type_message = donnees[0]
+id_vehicule = donnees[1]
+depart = donnees[2]
+destination = donnees[3]
+
+print("Type :", type_message)
+print("Véhicule :", id_vehicule)
+print("Départ :", depart)
+print("Destination :", destination)
+
+print(message)
 client.send("Message reçu par le serveur ".encode())
 
 serveur.close()
