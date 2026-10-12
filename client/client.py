@@ -1,5 +1,4 @@
 import socket
-from classes import Vehicules
 
 # toujours la 1ere socket
 

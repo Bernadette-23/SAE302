@@ -4,6 +4,9 @@ class Feu:
         self.__position = position
         self.__couleur = couleur
 
+    def get_position(self):
+        return self.__position
+
     def passer_au_vert(self):
         self.__couleur = "vert"
 
@@ -21,6 +24,13 @@ class Carrefour:
 
     def __str__(self):
         return f"Carrefour {self.__id} avec {len(self.__feux)} feux"
+
+    def rechercher_feu(self, position):
+        for feu in self.__feux:
+            if feu.get_position() == position:
+                return feu
+
+        return None
 
 
 if __name__ == '__main__':
@@ -47,3 +57,10 @@ if __name__ == '__main__':
     print(carrefourE)
     print(carrefourB)
 
+    # Test de recherche du feu
+    feu_trouve = carrefourB.rechercher_feu("A-B")
+
+    if feu_trouve is not None:
+        print(feu_trouve)
+    else:
+        print("Aucun feu trouvé")
