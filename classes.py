@@ -18,6 +18,12 @@ class Vehicules:
         self.__destination = destination
         self.__vitesse = vitesse
 
+    def get_position(self):
+        return self.__position
+
+    def get_destination(self):
+        return self.__destination
+
     def __str__(self):
         return f"Vehicule {self.__identifiant} : position {self.__position}, destination {self.__destination}, vitesse {self.__vitesse} km/h "
 ambulance=Vehicules(
@@ -106,6 +112,8 @@ def dijkstra(routes, depart, destination):
 
 #Pour chercher un chemin en particulier
 chemin, cout = dijkstra(routes, "A", "H")
+
+
 
 print("Chemin :", " -> ".join(chemin))
 print("Coût total :", cout)
