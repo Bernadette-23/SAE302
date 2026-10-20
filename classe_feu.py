@@ -33,7 +33,7 @@ class Carrefour:
         return None
 
 
-if __name__ == '__main__':
+
     feu2 = Feu(2, "A-B", "rouge")
     feu4 = Feu(4, "B-E", "rouge")
     feu6 = Feu(6, "H-E", "rouge")
@@ -53,7 +53,7 @@ if __name__ == '__main__':
         2,
         [feu1, feu2, feu3, feu8]
     )
-
+    if __name__ == '__main__':
     print(carrefourE)
     print(carrefourB)
 
