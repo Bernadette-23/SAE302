@@ -12,3 +12,4 @@ if __name__ == '__main__':
     end=time.perf_counter()
 
     print(f"Tasks ended in {round(end-start,2)} seconds")
+
