@@ -1,77 +1,16 @@
-
 import sys
-from PyQt6.QtCore import QTimer
+from PyQt6.QtCore import Qt, QTimer, QThread, pyqtSignal
+from PyQt6.QtGui import QPen, QBrush, QColor, QFont
 from PyQt6.QtWidgets import (
-    QApplication, QWidget, QLabel, QPushButton,
-    QComboBox, QVBoxLayout, QHBoxLayout,
-    QGraphicsScene, QGraphicsView
+    QApplication, QWidget, QLabel, QPushButton, QComboBox,
+    QVBoxLayout, QHBoxLayout, QListWidget, QGraphicsView,
+    QGraphicsScene, QGraphicsEllipseItem, QGraphicsLineItem,
+    QGraphicsRectItem, QMessageBox, QSplitter, QFrame
 )
-from PyQt6.QtGui import QPen, QBrush, QColor
 
-
-# -------------------------
-# 1. CLASSES FEU ET CARREFOUR
-# -------------------------
-
-class Feu:
-    def __init__(self, id, position, couleur):
-        self.id = id
-        self.position = position
-        self.couleur = couleur
-
-    def get_position(self):
-        return self.position
-
-    def passer_au_vert(self):
-        self.couleur = "vert"
-
-    def passer_au_rouge(self):
-        self.couleur = "rouge"
-
-
-class Carrefour:
-    def __init__(self, id, feux):
-        self.id = id
-        self.feux = feux
-
-    def rechercher_feu(self, position):
-        for feu in self.feux:
-            if feu.get_position() == position:
-                return feu
-        return None
-
-
-# -------------------------
-# 2. CREATION DES FEUX
-# -------------------------
-
-feu1 = Feu(1, "C-B", "rouge")
-feu2 = Feu(2, "A-B", "rouge")
-feu3 = Feu(3, "D-B", "rouge")
-feu8 = Feu(8, "E-B", "rouge")
-
-feu4 = Feu(4, "B-E", "rouge")
-feu5 = Feu(5, "F-E", "rouge")
-feu6 = Feu(6, "H-E", "rouge")
-feu7 = Feu(7, "G-E", "rouge")
-
-carrefourB = Carrefour(2, [feu1, feu2, feu3, feu8])
-carrefourE = Carrefour(1, [feu4, feu5, feu6, feu7])
-
-carrefours = {
-    "B": carrefourB,
-    "E": carrefourE
-}
-
-tous_les_feux = [
-    feu1, feu2, feu3, feu4,
-    feu5, feu6, feu7, feu8
-]
-
-
-# -------------------------
-# 3. ROUTES
-# -------------------------
+# ============================================================
+# ROUTES : coûts bidirectionnels
+# ============================================================
 
 routes = {
     "A": [("B", 5)],
@@ -86,54 +25,89 @@ routes = {
     "J": [("C", 5)]
 }
 
-
+# Positions du schéma. La vue peut défiler si nécessaire.
 positions = {
-    "A": (60, 180),
-    "B": (170, 180),
-    "C": (300, 180),
-    "D": (170, 70),
-    "E": (260, 300),
-    "F": (400, 300),
-    "G": (200, 390),
-    "H": (310, 390),
-    "I": (510, 300),
-    "J": (440, 180)
+    "I": (100, 70), "F": (100, 230), "C": (100, 430), "J": (100, 600),
+    "H": (340, 70), "E": (340, 230), "B": (340, 430), "A": (340, 600),
+    "G": (590, 230), "D": (590, 430)
 }
 
 
-# -------------------------
-# 4. DIJKSTRA
-# -------------------------
+# ============================================================
+# FEUX ET CARREFOURS
+# ============================================================
 
-def dijkstra(routes, depart, destination):
+class Feu:
+    def __init__(self, identifiant, position, couleur="vert"):
+        self.id = identifiant
+        self.position = position
+        self.couleur = couleur
 
-    distances = {}
-    precedents = {}
+    def passer_au_vert(self):
+        self.couleur = "vert"
+
+    def passer_au_rouge(self):
+        self.couleur = "rouge"
+
+
+class Carrefour:
+    def __init__(self, identifiant, feux):
+        self.id = identifiant
+        self.feux = feux
+
+    def rechercher_feu(self, position):
+        recherche = frozenset(position.split("-"))
+        for feu in self.feux:
+            if frozenset(feu.position.split("-")) == recherche:
+                return feu
+        return None
+
+
+segments = []
+for a, voisins in routes.items():
+    for b, cout in voisins:
+        cle = frozenset((a, b))
+        if not any(s["cle"] == cle for s in segments):
+            segments.append({
+                "cle": cle, "a": a, "b": b, "cout": cout,
+                "feu": Feu(len(segments) + 1, f"{a}-{b}", "vert")
+            })
+
+feux = [s["feu"] for s in segments]
+carrefours = [Carrefour(1, feux)]
+
+
+def trouver_segment(a, b):
+    cle = frozenset((a, b))
+    for segment in segments:
+        if segment["cle"] == cle:
+            return segment
+    return None
+
+
+# ============================================================
+# DIJKSTRA
+# ============================================================
+
+def dijkstra(graphe, depart, destination):
+    distances = {noeud: float("inf") for noeud in graphe}
+    precedents = {noeud: None for noeud in graphe}
     visites = []
-
-    for noeud in routes:
-        distances[noeud] = float("inf")
-        precedents[noeud] = None
-
     distances[depart] = 0
 
-    while len(visites) < len(routes):
-
+    while len(visites) < len(graphe):
         noeud = None
-
-        for n in routes:
-            if n not in visites:
-                if noeud is None or distances[n] < distances[noeud]:
-                    noeud = n
+        for candidat in graphe:
+            if candidat not in visites:
+                if noeud is None or distances[candidat] < distances[noeud]:
+                    noeud = candidat
 
         if noeud is None or distances[noeud] == float("inf"):
             break
 
         visites.append(noeud)
-
-        for voisin, cout in routes[noeud]:
+        for voisin, cout in graphe[noeud]:
             nouvelle_distance = distances[noeud] + cout
-
             if nouvelle_distance < distances[voisin]:
                 distances[voisin] = nouvelle_distance
                 precedents[voisin] = noeud
@@ -143,322 +117,444 @@ def dijkstra(routes, depart, destination):
 
     chemin = []
     noeud = destination
-
     while noeud is not None:
         chemin.append(noeud)
         noeud = precedents[noeud]
-
     chemin.reverse()
-
     return chemin, distances[destination]
 
 
-# -------------------------
-# 5. INTERFACE
-# -------------------------
+# ============================================================
+# THREAD DE CALCUL
+# ============================================================
 
-app = QApplication(sys.argv)
+class CalculThread(QThread):
+    resultat = pyqtSignal(int, str, str, object, object)
 
-fenetre = QWidget()
-fenetre.setWindowTitle("Simulation des ambulances")
-fenetre.resize(800, 700)
+    def __init__(self, identifiant, depart, destination):
+        super().__init__()
+        self.identifiant = identifiant
+        self.depart = depart
+        self.destination = destination
 
-titre = QLabel("Simulation des véhicules d'urgence")
-
-depart = QComboBox()
-depart.addItems(routes.keys())
-
-destination = QComboBox()
-destination.addItems(routes.keys())
-
-bouton = QPushButton("Lancer l'ambulance")
-resultat = QLabel("Choisis un départ et une destination.")
-
-scene = QGraphicsScene()
-scene.setSceneRect(0, 0, 600, 450)
-scene.setBackgroundBrush(QColor("#eeeeee"))
-
-vue = QGraphicsView(scene)
+    def run(self):
+        chemin, cout = dijkstra(routes, self.depart, self.destination)
+        self.resultat.emit(
+            self.identifiant, self.depart, self.destination, chemin, cout
+        )
 
 
-# -------------------------
-# 6. DESSIN DES ROUTES
-# -------------------------
+# ============================================================
+# SIMULATION (panneau de droite)
+# ============================================================
 
-dessinees = []
+class Simulation(QWidget):
+    def __init__(self, ambulances):
+        super().__init__()
+        self.ambulances = ambulances
+        self.voitures = []
+        self.voitures_donnees = []
+        self.lampes = {}
+        self.finis = set()
 
-for noeud in routes:
-    for voisin, cout in routes[noeud]:
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(4, 4, 4, 4)
+        self.info = QLabel("Ambulances prioritaires | Les voitures s'arrêtent devant un feu rouge.")
+        self.info.setWordWrap(True)
+        layout.addWidget(self.info)
 
-        route = tuple(sorted((noeud, voisin)))
+        self.scene = QGraphicsScene(0, 0, 700, 670)
+        self.vue = QGraphicsView(self.scene)
+        self.vue.setRenderHint(self.vue.renderHints())
+        self.vue.setMinimumWidth(480)
+        self.vue.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+        self.vue.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+        layout.addWidget(self.vue)
 
-        if route not in dessinees:
-            dessinees.append(route)
+        self.dessiner_routes()
+        self.dessiner_feux()
+        self.dessiner_carrefours()
+        self.creer_voitures()
+        self.creer_ambulances()
 
-            x1, y1 = positions[noeud]
-            x2, y2 = positions[voisin]
+        self.timer = QTimer(self)
+        self.timer.timeout.connect(self.avancer)
+        self.timer.start(35)
 
-            scene.addLine(
-                x1, y1, x2, y2,
-                QPen(QColor("#777777"), 6)
+    def dessiner_routes(self):
+        for segment in segments:
+            a, b, cout = segment["a"], segment["b"], segment["cout"]
+            x1, y1 = positions[a]
+            x2, y2 = positions[b]
+
+            route = QGraphicsLineItem(x1, y1, x2, y2)
+            route.setPen(QPen(QColor("#454545"), 18, Qt.PenStyle.SolidLine,
+                              Qt.PenCapStyle.RoundCap))
+            self.scene.addItem(route)
+
+            axe = QGraphicsLineItem(x1, y1, x2, y2)
+            axe.setPen(QPen(QColor("white"), 2, Qt.PenStyle.DashLine))
+            self.scene.addItem(axe)
+
+            texte = self.scene.addText(str(cout))
+            texte.setDefaultTextColor(QColor("#14813b"))
+            texte.setFont(QFont("Arial", 12, QFont.Weight.Bold))
+            texte.setPos((x1 + x2) / 2 + 6, (y1 + y2) / 2 - 21)
+
+    def dessiner_feux(self):
+        # Pas de feu aux extrémités des carrefours I, H, G, D, A et J.
+        # Cela laisse exactement 14 feux sur le graphe.
+        self.lampes = {}
+        extremites_sans_feu = {"I", "H", "G", "D", "A", "J"}
+
+        for segment in segments:
+            a, b = segment["a"], segment["b"]
+            x1, y1 = positions[a]
+            x2, y2 = positions[b]
+
+            # Feu proche du début du segment
+            if a not in extremites_sans_feu:
+                x = x1 + (x2 - x1) * 0.18
+                y = y1 + (y2 - y1) * 0.18
+                item = QGraphicsEllipseItem(x - 7, y - 7, 14, 14)
+                item.setPen(QPen(Qt.GlobalColor.black, 1))
+                item.setBrush(QBrush(QColor("#20a34a")))
+                self.scene.addItem(item)
+                self.lampes[(segment["cle"], "debut")] = item
+
+            # Feu proche de la fin du segment
+            if b not in extremites_sans_feu:
+                x = x1 + (x2 - x1) * 0.82
+                y = y1 + (y2 - y1) * 0.82
+                item = QGraphicsEllipseItem(x - 7, y - 7, 14, 14)
+                item.setPen(QPen(Qt.GlobalColor.black, 1))
+                item.setBrush(QBrush(QColor("#20a34a")))
+                self.scene.addItem(item)
+                self.lampes[(segment["cle"], "fin")] = item
+
+    def dessiner_carrefours(self):
+        for nom, (x, y) in positions.items():
+            point = QGraphicsEllipseItem(x - 12, y - 12, 24, 24)
+            point.setPen(QPen(Qt.GlobalColor.black, 2))
+            point.setBrush(QBrush(QColor("#f5f5f5")))
+            self.scene.addItem(point)
+
+            texte = self.scene.addText(nom)
+            texte.setFont(QFont("Arial", 12, QFont.Weight.Bold))
+            texte.setPos(x - 7, y - 39)
+
+    def creer_voitures(self):
+        chemins = [
+            ["A", "B", "C", "F", "E", "B", "D", "B", "A"],
+            ["D", "B", "E", "G", "E", "F", "C", "B", "D"],
+            ["J", "C", "B", "E", "H", "E", "F", "I", "F", "C", "J"]
+        ]
+        couleurs = ["#2878d0", "#e5a000", "#7b4ab5"]
+        for i, chemin in enumerate(chemins):
+            item = QGraphicsRectItem(-8, -5, 16, 10)
+            item.setPen(QPen(Qt.GlobalColor.black, 1))
+            item.setBrush(QBrush(QColor(couleurs[i])))
+            self.scene.addItem(item)
+            self.voitures.append(item)
+            self.voitures_donnees.append({
+                "chemin": chemin,
+                "etape": 0,
+                "progression": i * 0.25,
+                "attente": 0
+            })
+
+    def creer_ambulances(self):
+        couleurs = ["#ffffff", "#f4f4f4", "#e8f0ff", "#fff0f0"]
+        for i, amb in enumerate(self.ambulances):
+            item = QGraphicsRectItem(-12, -8, 24, 16)
+            item.setPen(QPen(QColor("#b71c1c"), 2))
+            item.setBrush(QBrush(QColor(couleurs[i % len(couleurs)])))
+            self.scene.addItem(item)
+
+            croix = self.scene.addText("+")
+            croix.setDefaultTextColor(QColor("#d71920"))
+            croix.setFont(QFont("Arial", 16, QFont.Weight.Bold))
+            self.scene.addItem(croix)
+
+            amb["item"] = item
+            amb["croix"] = croix
+            amb["etape"] = 0
+            amb["progression"] = 0.0
+            amb["terminee"] = len(amb["chemin"]) < 2
+            if amb["terminee"]:
+                self.finis.add(amb["id"])
+            self.placer_amb(amb)
+
+    def placer_amb(self, amb):
+        nom = amb["chemin"][min(amb["etape"], len(amb["chemin"]) - 1)]
+        x, y = positions[nom]
+        amb["item"].setPos(x, y)
+        amb["croix"].setPos(x - 7, y - 18)
+
+    def mettre_a_jour_feux(self):
+        # Tous les feux sont verts par défaut. Les feux des routes
+        # conflictuelles au prochain carrefour passent au rouge.
+        rouges, verts = set(), set()
+
+        for amb in self.ambulances:
+            if amb["terminee"]:
+                continue
+            chemin, etape = amb["chemin"], amb["etape"]
+            if etape >= len(chemin) - 1:
+                continue
+
+            depart, arrivee = chemin[etape], chemin[etape + 1]
+            verts.add(frozenset((depart, arrivee)))
+
+            for voisin, _ in routes[arrivee]:
+                cle = frozenset((arrivee, voisin))
+                if cle != frozenset((depart, arrivee)):
+                    rouges.add(cle)
+
+        rouges -= verts
+
+        for segment in segments:
+            if segment["cle"] in rouges:
+                segment["feu"].passer_au_rouge()
+                couleur = QColor("#e53935")
+            else:
+                segment["feu"].passer_au_vert()
+                couleur = QColor("#20a34a")
+
+            for sens in ("debut", "fin"):
+                lampe = self.lampes.get((segment["cle"], sens))
+                if lampe is not None:
+                    lampe.setBrush(QBrush(couleur))
+
+    def avancer_voiture(self, item, voiture):
+        chemin = voiture["chemin"]
+        if len(chemin) < 2:
+            return
+
+        if voiture["etape"] >= len(chemin) - 1:
+            voiture["etape"] = 0
+            voiture["progression"] = 0.0
+
+        depart = chemin[voiture["etape"]]
+        arrivee = chemin[voiture["etape"] + 1]
+        segment = trouver_segment(depart, arrivee)
+
+        # Une voiture qui attend au début d'un segment rouge ne bouge pas.
+        if voiture["progression"] == 0 and segment["feu"].couleur == "rouge":
+            return
+
+        voiture["progression"] += 0.012
+        t = voiture["progression"]
+        x1, y1 = positions[depart]
+        x2, y2 = positions[arrivee]
+        item.setPos(x1 + (x2 - x1) * t, y1 + (y2 - y1) * t)
+
+        if voiture["progression"] >= 1:
+            voiture["etape"] += 1
+            voiture["progression"] = 0.0
+
+    def avancer_amb(self, amb):
+        if amb["terminee"]:
+            return
+
+        chemin = amb["chemin"]
+        if amb["etape"] >= len(chemin) - 1:
+            amb["terminee"] = True
+            self.finis.add(amb["id"])
+            return
+
+        depart, arrivee = chemin[amb["etape"]], chemin[amb["etape"] + 1]
+        amb["progression"] += 0.005
+        t = amb["progression"]
+        x1, y1 = positions[depart]
+        x2, y2 = positions[arrivee]
+        x = x1 + (x2 - x1) * t
+        y = y1 + (y2 - y1) * t
+        amb["item"].setPos(x, y)
+        amb["croix"].setPos(x - 7, y - 18)
+
+        if amb["progression"] >= 1:
+            amb["etape"] += 1
+            amb["progression"] = 0.0
+
+    def avancer(self):
+        self.mettre_a_jour_feux()
+
+        for voiture, donnees in zip(self.voitures, self.voitures_donnees):
+            self.avancer_voiture(voiture, donnees)
+
+        for amb in self.ambulances:
+            self.avancer_amb(amb)
+
+        if len(self.finis) == len(self.ambulances):
+            self.mettre_a_jour_feux()
+            self.timer.stop()
+            self.info.setText("Toutes les ambulances sont arrivées.")
+
+
+# ============================================================
+# FENETRE PRINCIPALE : choix à gauche, simulation à droite
+# ============================================================
+
+class FenetrePrincipale(QWidget):
+    def __init__(self):
+        super().__init__()
+        self.setWindowTitle("Gestion des véhicules d'urgence")
+        self.resize(1400, 850)
+
+        principal = QHBoxLayout(self)
+
+        # Panneau gauche : contrôles et résultats
+        panneau_gauche = QWidget()
+        panneau_gauche.setMinimumWidth(300)
+        panneau_gauche.setMaximumWidth(380)
+        gauche = QVBoxLayout(panneau_gauche)
+
+        titre = QLabel("Gestion des ambulances")
+        titre.setStyleSheet("font-size: 18px; font-weight: bold;")
+        gauche.addWidget(titre)
+        gauche.addWidget(QLabel("Départ :"))
+        self.depart = QComboBox()
+        self.depart.addItems(routes.keys())
+        gauche.addWidget(self.depart)
+
+        gauche.addWidget(QLabel("Destination :"))
+        self.destination = QComboBox()
+        self.destination.addItems(routes.keys())
+        gauche.addWidget(self.destination)
+
+        self.ajouter = QPushButton("Ajouter une ambulance")
+        self.lancer = QPushButton("Calculer et démarrer")
+        self.reinitialiser = QPushButton("Nouvelle simulation")
+        gauche.addWidget(self.ajouter)
+        gauche.addWidget(self.lancer)
+        gauche.addWidget(self.reinitialiser)
+
+        gauche.addWidget(QLabel("Ambulances ajoutées :"))
+        self.liste = QListWidget()
+        gauche.addWidget(self.liste, 1)
+
+        gauche.addWidget(QLabel("Résultats de Dijkstra :"))
+        self.resultats = QListWidget()
+        gauche.addWidget(self.resultats, 2)
+
+        # Panneau droit : simulation intégrée dans la même fenêtre.
+        panneau_droit = QWidget()
+        droite = QVBoxLayout(panneau_droit)
+        droite.setContentsMargins(0, 0, 0, 0)
+        label_simulation = QLabel("Simulation du carrefour")
+        label_simulation.setStyleSheet("font-size: 18px; font-weight: bold;")
+        droite.addWidget(label_simulation)
+
+        self.simulation = None
+        self.placeholder = QLabel("Ajoute une ambulance puis clique sur « Calculer et démarrer ».")
+        self.placeholder.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.placeholder.setFrameShape(QFrame.Shape.StyledPanel)
+        droite.addWidget(self.placeholder)
+
+        self.panneau_droit = panneau_droit
+        principal.addWidget(panneau_gauche, 0)
+        principal.addWidget(panneau_droit, 1)
+
+        self.demandes = []
+        self.threads = []
+        self.calculs = {}
+        self.prochaine_id = 1
+
+        self.ajouter.clicked.connect(self.ajouter_ambulance)
+        self.lancer.clicked.connect(self.lancer_simulation)
+        self.reinitialiser.clicked.connect(self.nouvelle_simulation)
+
+    def ajouter_ambulance(self):
+        depart = self.depart.currentText()
+        destination = self.destination.currentText()
+
+        if depart == destination:
+            QMessageBox.information(self, "Trajet", "Choisis deux carrefours différents.")
+            return
+
+        identifiant = self.prochaine_id
+        self.prochaine_id += 1
+        self.demandes.append((identifiant, depart, destination))
+        self.liste.addItem(f"Ambulance {identifiant} : {depart} → {destination}")
+
+    def lancer_simulation(self):
+        if not self.demandes:
+            QMessageBox.information(self, "Ambulances", "Ajoute au moins une ambulance.")
+            return
+
+        self.lancer.setEnabled(False)
+        self.ajouter.setEnabled(False)
+        self.resultats.clear()
+        self.calculs = {}
+        self.threads = []
+
+        for identifiant, depart, destination in self.demandes:
+            thread = CalculThread(identifiant, depart, destination)
+            thread.resultat.connect(self.recevoir_resultat)
+            self.threads.append(thread)
+
+        for thread in self.threads:
+            thread.start()
+
+    def recevoir_resultat(self, identifiant, depart, destination, chemin, cout):
+        self.calculs[identifiant] = {
+            "id": identifiant, "depart": depart, "destination": destination,
+            "chemin": chemin, "cout": cout
+        }
+
+        if chemin:
+            self.resultats.addItem(
+                f"Ambulance {identifiant} : {' → '.join(chemin)} | coût : {cout}"
             )
-
-            texte = scene.addText(str(cout))
-            texte.setPos((x1 + x2) / 2, (y1 + y2) / 2)
-
-
-# -------------------------
-# 7. DESSIN DES VOITURES
-# -------------------------
-
-voitures = [
-    ("A", "B", 0.30),
-    ("B", "C", 0.65),
-    ("E", "F", 0.35)
-]
-
-for d, a, proportion in voitures:
-
-    x1, y1 = positions[d]
-    x2, y2 = positions[a]
-
-    x = x1 + (x2 - x1) * proportion
-    y = y1 + (y2 - y1) * proportion
-
-    scene.addRect(
-        x - 10, y - 6, 20, 12,
-        QPen(QColor("#174ea6")),
-        QBrush(QColor("#4285f4"))
-    )
-
-
-# -------------------------
-# 8. DESSIN DES CARREFOURS
-# -------------------------
-
-for noeud, (x, y) in positions.items():
-
-    scene.addEllipse(
-        x - 14, y - 14, 28, 28,
-        QPen(QColor("black")),
-        QBrush(QColor("white"))
-    )
-
-    texte = scene.addText(noeud)
-    texte.setPos(x - 5, y - 11)
-
-
-# -------------------------
-# 9. DESSIN DES FEUX
-# -------------------------
-
-positions_feux = {
-    1: (190, 145),
-    2: (140, 145),
-    3: (140, 205),
-    8: (190, 205),
-
-    4: (230, 265),
-    5: (290, 265),
-    6: (290, 335),
-    7: (230, 335)
-}
-
-dessin_feux = {}
-
-for feu in tous_les_feux:
-
-    x, y = positions_feux[feu.id]
-
-    cercle = scene.addEllipse(
-        x, y, 14, 14,
-        QPen(QColor("black")),
-        QBrush(QColor("red"))
-    )
-
-    texte = scene.addText(feu.position)
-    texte.setPos(x - 10, y - 20)
-
-    dessin_feux[feu.id] = cercle
-
-
-# -------------------------
-# 10. GESTION DES FEUX
-# -------------------------
-
-def actualiser_feux():
-    for feu in tous_les_feux:
-
-        if feu.couleur == "vert":
-            couleur = QColor("green")
         else:
-            couleur = QColor("red")
+            self.resultats.addItem(f"Ambulance {identifiant} : aucun chemin.")
 
-        dessin_feux[feu.id].setBrush(QBrush(couleur))
+        if len(self.calculs) == len(self.demandes):
+            for thread in self.threads:
+                thread.wait()
 
+            self.lancer.setEnabled(True)
+            self.ajouter.setEnabled(True)
 
-def activer_feu(carrefour, prochain):
+            valides = [r for r in self.calculs.values() if r["chemin"]]
+            if valides:
+                self.afficher_simulation(valides)
+            else:
+                QMessageBox.warning(self, "Trajets", "Aucun trajet valide.")
 
-    # Tous les feux repassent au rouge
-    for feu in tous_les_feux:
-        feu.passer_au_rouge()
+    def afficher_simulation(self, ambulances):
+        if self.simulation is not None:
+            self.simulation.timer.stop()
+            self.panneau_droit.layout().removeWidget(self.simulation)
+            self.simulation.setParent(None)
+            self.simulation.deleteLater()
 
-    # Chercher le feu correspondant à la route
-    if carrefour in carrefours:
+        self.placeholder.hide()
+        self.simulation = Simulation(ambulances)
+        self.panneau_droit.layout().addWidget(self.simulation)
 
-        position_feu = prochain + "-" + carrefour
+    def nouvelle_simulation(self):
+        if self.simulation is not None:
+            self.simulation.timer.stop()
+            self.panneau_droit.layout().removeWidget(self.simulation)
+            self.simulation.setParent(None)
+            self.simulation.deleteLater()
+            self.simulation = None
 
-        feu = carrefours[carrefour].rechercher_feu(position_feu)
-
-        if feu is not None:
-            feu.passer_au_vert()
-
-    actualiser_feux()
-
-
-# -------------------------
-# 11. AMBULANCE
-# -------------------------
-
-ambulance = scene.addEllipse(
-    -10, -10, 20, 20,
-    QPen(QColor("darkred")),
-    QBrush(QColor("red"))
-)
-
-lettre = scene.addText("A")
-lettre.setDefaultTextColor(QColor("white"))
-
-ambulance.setPos(*positions["A"])
-lettre.setPos(positions["A"][0] - 5, positions["A"][1] - 11)
-
-chemin_actuel = []
-index_chemin = 1
-
-timer = QTimer()
-
-
-# -------------------------
-# 12. LANCER LA SIMULATION
-# -------------------------
-
-def lancer_simulation():
-
-    global chemin_actuel, index_chemin
-
-    timer.stop()
-
-    for feu in tous_les_feux:
-        feu.passer_au_rouge()
-
-    actualiser_feux()
-
-    d = depart.currentText()
-    a = destination.currentText()
-
-    chemin, cout = dijkstra(routes, d, a)
-
-    if not chemin:
-        resultat.setText("Aucun chemin trouvé.")
-        return
-
-    chemin_actuel = chemin
-    index_chemin = 1
-
-    x, y = positions[d]
-    ambulance.setPos(x, y)
-    lettre.setPos(x - 5, y - 11)
-
-    resultat.setText(
-        "Chemin : " + " -> ".join(chemin)
-        + " | Coût : " + str(cout)
-    )
-
-    if len(chemin) == 1:
-        resultat.setText("L'ambulance est déjà arrivée.")
-        return
-
-    # Activer le feu sur la première route
-    activer_feu(chemin[0], chemin[1])
-
-    timer.start(30)
+        self.demandes.clear()
+        self.calculs.clear()
+        self.threads.clear()
+        self.liste.clear()
+        self.resultats.clear()
+        self.prochaine_id = 1
+        self.placeholder.show()
+        self.lancer.setEnabled(True)
+        self.ajouter.setEnabled(True)
 
 
-# -------------------------
-# 13. DEPLACER L'AMBULANCE
-# -------------------------
-
-def deplacer_ambulance():
-
-    global index_chemin
-
-    if index_chemin >= len(chemin_actuel):
-        timer.stop()
-
-        for feu in tous_les_feux:
-            feu.passer_au_rouge()
-
-        actualiser_feux()
-        resultat.setText(resultat.text() + " | Ambulance arrivée !")
-        return
-
-    x = ambulance.x()
-    y = ambulance.y()
-
-    prochain = chemin_actuel[index_chemin]
-    cible_x, cible_y = positions[prochain]
-
-    dx = cible_x - x
-    dy = cible_y - y
-
-    distance = (dx ** 2 + dy ** 2) ** 0.5
-
-    if distance <= 3:
-
-        ambulance.setPos(cible_x, cible_y)
-        lettre.setPos(cible_x - 5, cible_y - 11)
-
-        index_chemin += 1
-
-        # Le feu change au carrefour atteint,
-        # pour préparer la prochaine route
-        if index_chemin < len(chemin_actuel):
-            activer_feu(
-                chemin_actuel[index_chemin - 1],
-                chemin_actuel[index_chemin]
-            )
-
-    else:
-
-        x += dx / distance * 3
-        y += dy / distance * 3
-
-        ambulance.setPos(x, y)
-        lettre.setPos(x - 5, y - 11)
-
-
-timer.timeout.connect(deplacer_ambulance)
-bouton.clicked.connect(lancer_simulation)
-
-
-# -------------------------
-# 14. ORGANISATION
-# -------------------------
-
-choix = QHBoxLayout()
-choix.addWidget(QLabel("Départ :"))
-choix.addWidget(depart)
-choix.addWidget(QLabel("Destination :"))
-choix.addWidget(destination)
-choix.addWidget(bouton)
-
-layout = QVBoxLayout()
-layout.addWidget(titre)
-layout.addLayout(choix)
-layout.addWidget(vue)
-layout.addWidget(resultat)
-
-fenetre.setLayout(layout)
-fenetre.show()
-
-sys.exit(app.exec())
+if __name__ == "__main__":
+    app = QApplication(sys.argv)
+    fenetre = FenetrePrincipale()
+    fenetre.show()
+    sys.exit(app.exec())
