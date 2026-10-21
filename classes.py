@@ -240,6 +240,10 @@ def traiter_urgence(vehicule, depart, destination, routes, carrefours):
 
     feux = rechercher_feux_du_trajet(chemin, carrefours)
 
+    print("Feux trouvés sur le trajet :")
+    for feu in feux:
+        print(feu)
+
     # 3. Passer les feux trouvés au vert
     print("\nActivation des feux :")
 
