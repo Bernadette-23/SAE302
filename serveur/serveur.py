@@ -9,6 +9,8 @@ from T_gestion_urgence import (
     traiter_urgence
 )
 
+from commun.base_donnees import enregistrer_evenement
+
 carrefours = [carrefourE, carrefourB]
 
 def lancer_serveur():
@@ -42,6 +44,16 @@ def lancer_serveur():
                             routes,
                             carrefours
                         )
+
+                        if chemin and cout != float("inf"):
+                            enregistrer_evenement(
+                                type_evenement="urgence",
+                                depart=depart,
+                                destination=destination,
+                                chemin=" -> ".join(chemin),
+                                cout=cout,
+                                details="Demande de priorité d'un véhicule d'urgence"
+                            )
 
                         reponse = {
                             "chemin": chemin,

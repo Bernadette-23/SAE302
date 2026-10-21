@@ -80,14 +80,22 @@ feu2 = Feu(2, "A-B", "rouge")
 feu4 = Feu(4, "B-E", "rouge")
 feu6 = Feu(6, "H-E", "rouge")
 feu8 = Feu(8, "E-B", "rouge")
+feu10 = Feu(10, "J-C", "rouge")
+feu12 = Feu(12, "C-F", "rouge")
+feu14 = Feu(14, "I-F", "rouge")
+feu16 = Feu(16, "F-C", "rouge")
 
 feu1 = Feu(1, "C-B", "rouge")
 feu3 = Feu(3, "D-B", "rouge")
 feu5 = Feu(5, "F-E", "rouge")
 feu7 = Feu(7, "G-E", "rouge")
+feu9 = Feu(9, "B-C", "rouge")
+feu11 = Feu(11, "E-F", "rouge")
 
 carrefourE = Carrefour(1, [feu4, feu6, feu5, feu7])
 carrefourB = Carrefour(2, [feu1, feu2, feu3, feu8])
+carrefourC = Carrefour(3, [feu10, feu16, feu9])
+carrefourF = Carrefour(4, [feu12, feu14, feu11])
 
 
 
