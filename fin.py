@@ -1,7 +1,7 @@
 
 import sys
 
-from PyQt6.QtCore import Qt, QTimer, QThread, pyqtSignal, QMutex
+from PyQt6.QtCore import Qt, QTimer, QThread, pyqtSignal, QMutex, QSemaphore
 from PyQt6.QtGui import QColor, QPen, QBrush, QFont
 from PyQt6.QtWidgets import (
     QApplication, QWidget, QLabel, QPushButton,
@@ -235,14 +235,11 @@ def dijkstra(routes, depart, destination):
 # 6. THREAD POUR CALCULER LES TRAJETS
 # ==================================================
 
-
 class CalculThread(QThread):
-
-    # Le signal transmet l'identifiant de l'ambulance
     resultat = pyqtSignal(int)
 
     def __init__(self, identifiant, depart, destination,
-                 mutex, resultats_partages):
+                 mutex, resultats_partages, semaphore):
 
         super().__init__()
 
@@ -250,35 +247,41 @@ class CalculThread(QThread):
         self.depart = depart
         self.destination = destination
 
-        # Ressources partagées
         self.mutex = mutex
         self.resultats_partages = resultats_partages
+        self.semaphore = semaphore
 
     def run(self):
 
-        # Calcul du trajet
-        chemin, cout = dijkstra(
-            routes,
-            self.depart,
-            self.destination
-        )
-
-        # Demander l'accès au dictionnaire partagé
-        self.mutex.lock()
+        # Attendre qu'une place soit disponible
+        self.semaphore.acquire()
 
         try:
+            # Calculer le chemin de l'ambulance
+            chemin, cout = dijkstra(
+                routes,
+                self.depart,
+                self.destination
+            )
+
             # Enregistrer le résultat
-            self.resultats_partages[self.identifiant] = {
-                "chemin": chemin,
-                "cout": cout
-            }
+            self.mutex.lock()
+
+            try:
+                self.resultats_partages[self.identifiant] = {
+                    "chemin": chemin,
+                    "cout": cout
+                }
+
+            finally:
+                self.mutex.unlock()
 
         finally:
-            # Libérer le mutex, même en cas d'erreur
-            self.mutex.unlock()
+            # Libérer la place pour une autre ambulance
+            self.semaphore.release()
 
-        # Prévenir la fenêtre que le résultat est disponible
         self.resultat.emit(self.identifiant)
+
 
 
 
@@ -808,6 +811,8 @@ class FenetrePrincipale(QWidget):
         #Dictionnaires contenant les résultats des threads
         self.resultats_partages = {}
 
+        self.semaphore = QSemaphore(2)
+
         self.prochaine_id = 1
         self.simulation = None
 
@@ -972,7 +977,8 @@ class FenetrePrincipale(QWidget):
                 ambulance.position,
                 ambulance.destination,
                 self.mutex,
-                self.resultats_partages
+                self.resultats_partages,
+                self.semaphore
             )
 
             thread.resultat.connect(self.recevoir_resultat)
