@@ -39,10 +39,9 @@ CREATE TABLE `evenements` (
   `destination` char(1) DEFAULT NULL,
   `chemin` varchar(100) DEFAULT NULL,
   `cout` float DEFAULT NULL,
-  `densite` int(11) DEFAULT NULL,
   `details` varchar(255) DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_uca1400_ai_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_uca1400_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -52,12 +51,6 @@ CREATE TABLE `evenements` (
 SET @OLD_AUTOCOMMIT=@@AUTOCOMMIT, @@AUTOCOMMIT=0;
 LOCK TABLES `evenements` WRITE;
 /*!40000 ALTER TABLE `evenements` DISABLE KEYS */;
-INSERT INTO `evenements` VALUES
-(1,'2026-10-21 13:57:15','urgence','B','G','B -> E -> G',5,NULL,'Demande de priorité d\'un véhicule d\'urgence'),
-(2,'2026-10-21 14:01:05','urgence','H','A','H -> E -> B -> A',14,NULL,'Demande de priorité d\'un véhicule d\'urgence'),
-(3,'2026-11-12 02:09:44','urgence','J','H','J -> C -> F -> E -> H',18,NULL,'Demande de priorité d\'un véhicule d\'urgence'),
-(4,'2026-11-12 02:12:34','urgence','B','I','B -> C -> F -> I',11,NULL,'Demande de priorité d\'un véhicule d\'urgence'),
-(5,'2026-11-12 02:12:34','urgence','F','J','F -> C -> J',7,NULL,'Demande de priorité d\'un véhicule d\'urgence');
 /*!40000 ALTER TABLE `evenements` ENABLE KEYS */;
 UNLOCK TABLES;
 COMMIT;
@@ -72,4 +65,11 @@ SET AUTOCOMMIT=@OLD_AUTOCOMMIT;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*M!100616 SET NOTE_VERBOSITY=@OLD_NOTE_VERBOSITY */;
 
--- Dump completed on 2026-11-12 19:58:00
+-- Dump completed on 2026-11-12 23:43:31
+
+CREATE USER IF NOT EXISTS 'bc'@'127.0.0.1'
+IDENTIFIED BY 'galactique';
+
+GRANT SELECT, INSERT ON sae302.* TO 'bc'@'127.0.0.1';
+
+FLUSH PRIVILEGES;
