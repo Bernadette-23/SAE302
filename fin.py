@@ -10,6 +10,7 @@ from PyQt6.QtWidgets import (
     QGraphicsEllipseItem, QGraphicsRectItem,
     QMessageBox, QFrame
 )
+from client.client import envoyer_demande
 
 
 # ==================================================
@@ -236,6 +237,7 @@ def dijkstra(routes, depart, destination):
 # ==================================================
 
 class CalculThread(QThread):
+
     resultat = pyqtSignal(int)
 
     def __init__(self, identifiant, depart, destination,
@@ -257,27 +259,46 @@ class CalculThread(QThread):
         self.semaphore.acquire()
 
         try:
-            # Calculer le chemin de l'ambulance
-            chemin, cout = dijkstra(
-                routes,
-                self.depart,
-                self.destination
-            )
+            try:
+                # Envoyer la demande au serveur
+                reponse = envoyer_demande(
+                    self.depart,
+                    self.destination
+                )
 
-            # Enregistrer le résultat
+                if "erreur" in reponse:
+                    resultat = {
+                        "chemin": [],
+                        "cout": None,
+                        "erreur": reponse["erreur"]
+                    }
+
+                else:
+                    resultat = {
+                        "chemin": reponse["chemin"],
+                        "cout": reponse["cout"],
+                        "erreur": None
+                    }
+
+            except (OSError, ValueError, KeyError) as erreur:
+
+                resultat = {
+                    "chemin": [],
+                    "cout": None,
+                    "erreur": str(erreur)
+                }
+
+            # Protéger le dictionnaire partagé
             self.mutex.lock()
 
             try:
-                self.resultats_partages[self.identifiant] = {
-                    "chemin": chemin,
-                    "cout": cout
-                }
+                self.resultats_partages[self.identifiant] = resultat
 
             finally:
                 self.mutex.unlock()
 
         finally:
-            # Libérer la place pour une autre ambulance
+            # Libérer le sémaphore
             self.semaphore.release()
 
         self.resultat.emit(self.identifiant)
@@ -1009,6 +1030,7 @@ class FenetrePrincipale(QWidget):
         # Récupérer les informations du résultat
         chemin = resultat["chemin"]
         cout = resultat["cout"]
+        erreur = resultat.get("erreur")
 
         resultat = {
             "id": identifiant,
@@ -1018,7 +1040,13 @@ class FenetrePrincipale(QWidget):
 
         self.calculs.append(resultat)
 
-        if len(chemin) > 0:
+        if erreur:
+
+            self.resultats.addItem(
+                f"Ambulance {identifiant} : erreur - {erreur}"
+            )
+
+        elif len(chemin) > 0:
 
             texte = " -> ".join(chemin)
 

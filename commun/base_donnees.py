@@ -2,7 +2,7 @@ import mariadb
 
 
 # Configuration de la base MariaDB sur la VM Debian
-DB_HOST = "127.0.0.1" #ou "192.168.0.9" pour tester la db VM
+DB_HOST = "192.168.0.10" #ou "192.168.0.9" pour tester la db VM
 DB_PORT = 3306
 DB_USER = "bc"
 DB_PASSWORD = "galactique"
