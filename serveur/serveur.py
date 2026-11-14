@@ -1,7 +1,7 @@
 import socket
 import json
 
-from gestion_trajet import routes, dijkstra
+from commun.gestion_trajet import routes, dijkstra
 from commun.base_donnees import enregistrer_evenement
 
 import threading
