@@ -9,8 +9,8 @@ Il consiste à simuler la gestion de carrefours connectés afin de faciliter le 
 ## 2. Membres du groupe
 
 - **Nom du groupe :** BC Galactique
-- **Étudiant 1 :** DAYA Chloé
-- **Étudiant 2 :** LAFAGE Bernadette
+- **Étudiante 1 :** DAYA Chloé
+- **Étudiante 2 :** LAFAGE Bernadette
 
 ## 3. Installation et déploiement
 
@@ -148,21 +148,53 @@ python main.py
 
 L'interface graphique permet ensuite d'utiliser la simulation et d'envoyer des demandes de trajet pour les véhicules d'urgence.
 
-### 4.3. Arrêt de l'application
+### 4.3. Exemple d'utilisation de l'interface graphique
+
+Une fois l'interface graphique ouverte et le serveur démarré, il est possible de simuler le trajet d'une ambulance en suivant les étapes ci-dessous.
+
+#### Étape 1 : choisir le départ et la destination de l'ambulance
+
+Dans la zone **Gestion des ambulances**, sélectionner le point de départ et le point d'arrivée à l'aide des deux menus déroulants.
+
+![etape_1.png](etape_1.png)
+
+#### Étape 2 : ajouter l'ambulance
+
+Cliquer sur le bouton **« Ajouter une ambulance »**. L'ambulance sélectionnée est alors ajoutée à la liste des ambulances en attente de simulation.
+
+![etape_2.png](etape_2.png)
+
+#### Étape 3 : calculer le trajet et démarrer la simulation
+
+Cliquer sur le bouton **« Calculer et démarrer »**. La demande est transmise au serveur, qui calcule le trajet. La simulation peut ensuite démarrer avec le trajet obtenu.
+
+![etape_3.png](etape_3.png)
+
+
+
+
+### 5. Arrêt de l'application
 
 Fermer l'interface graphique.
 
 Pour arrêter le serveur, revenir dans le terminal où il est lancé et utiliser `Ctrl + C`.
 
-## 5. Arborescence du projet
+## 6. Arborescence du projet
 
 ```text
 SAE302/
 ├── client/
+│   ├── __init__.py
+│   └── client.py
 ├── commun/
+│   ├── __init__.py
+│   ├── base_donnees.py
+│   └── protocole.py
 ├── database/
+│   └── sae302.sql
 ├── serveur/
-├── venv/
+│   ├── __init__.py
+│   └── serveur.py
 ├── gestion_trajet.py
 ├── main.py
 ├── requirements.txt
