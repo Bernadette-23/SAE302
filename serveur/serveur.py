@@ -4,6 +4,13 @@ import json
 from gestion_trajet import routes, dijkstra
 from commun.base_donnees import enregistrer_evenement
 
+import threading
+
+from commun.export_csv import (
+    exporter_evenements_csv,
+    surveiller_evenements
+)
+
 
 def traiter_demande(demande):
     depart = demande.get("depart")
@@ -43,6 +50,13 @@ def lancer_serveur():
     serveur.listen(5)
 
     print("Serveur en attente de demandes...")
+
+    thread_csv = threading.Thread(
+        target=surveiller_evenements,
+        daemon=True
+    )
+
+    thread_csv.start()
 
     try:
         while True:
