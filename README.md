@@ -156,19 +156,19 @@ Une fois l'interface graphique ouverte et le serveur démarré, il est possible 
 
 Dans la zone **Gestion des ambulances**, sélectionner le point de départ et le point d'arrivée à l'aide des deux menus déroulants.
 
-![etape_1.png](etape_1.png)
+![etape_1.png](images_readme/etape_1.png)
 
 #### Étape 2 : ajouter l'ambulance
 
 Cliquer sur le bouton **« Ajouter une ambulance »**. L'ambulance sélectionnée est alors ajoutée à la liste des ambulances en attente de simulation.
 
-![etape_2.png](etape_2.png)
+![etape_2.png](images_readme/etape_2.png)
 
 #### Étape 3 : calculer le trajet et démarrer la simulation
 
 Cliquer sur le bouton **« Calculer et démarrer »**. La demande est transmise au serveur, qui calcule le trajet. La simulation peut ensuite démarrer avec le trajet obtenu.
 
-![etape_3.png](etape_3.png)
+![etape_3.png](images_readme/etape_3.png)
 
 
 
