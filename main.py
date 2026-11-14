@@ -1,4 +1,10 @@
 
+"""
+Module principal de l'application de gestion des véhicules d'urgence.
+Il contient les classes de gestion des véhicules et des feux, le réseau
+routier ainsi que le traitement des demandes de calcul de trajet.
+"""
+
 import sys
 
 from PyQt6.QtCore import Qt, QTimer, QThread, pyqtSignal, QMutex, QSemaphore
@@ -18,14 +24,26 @@ from client.client import envoyer_demande
 # ==================================================
 
 class Vehicules:
+    """
+    Représente un véhicule d'urgence avec son identifiant,
+    sa position de départ, sa destination et sa vitesse.
+    """
 
     def __init__(self, identifiant, position, destination, vitesse):
+        """
+        Initialise un véhicule avec ses principales caractéristiques
+        afin de mémoriser les informations nécessaires à son trajet.
+        """
         self.id = identifiant
         self.position = position
         self.destination = destination
         self.vitesse = vitesse
 
     def __str__(self):
+        """
+        Retourne une représentation textuelle du véhicule
+        contenant son identifiant.
+        """
         return f"Ambulance {self.id}"
 
 
@@ -34,38 +52,66 @@ class Vehicules:
 # ==================================================
 
 class Feu:
+    """
+    Représente un feu de circulation associé à une route
+    et permet de gérer son état (vert ou rouge).
+    """
 
     def __init__(self, identifiant, position, couleur="vert"):
+        """
+        Initialise un feu avec son identifiant, sa position
+        sur le réseau et sa couleur initiale.
+        """
         self.id = identifiant
         self.position = position
         self.couleur = couleur
 
     def passer_au_vert(self):
+        """
+        Modifie l'état du feu pour autoriser la circulation
+        sur la route concernée.
+        """
         self.couleur = "vert"
 
     def passer_au_rouge(self):
+        """
+        Modifie l'état du feu pour interrompre la circulation
+        sur la route concernée.
+        """
         self.couleur = "rouge"
 
 
 class Carrefour:
+    """
+    Représente un carrefour composé de plusieurs feux
+    et permet de retrouver un feu à partir de sa position.
+    """
 
     def __init__(self, identifiant, feux):
+        """
+        Initialise un carrefour avec son identifiant
+        et la liste des feux qui lui sont associés.
+        """
         self.id = identifiant
         self.feux = feux
 
     def rechercher_feu(self, position):
-
+        """
+        Recherche un feu correspondant à une route donnée.
+        La recherche fonctionne dans les deux sens de circulation.
+        """
         for feu in self.feux:
 
             if feu.position == position:
                 return feu
 
-            # On accepte aussi le sens inverse
+            # On accepte également la route dans le sens inverse
             depart, arrivee = feu.position.split("-")
 
             if position == arrivee + "-" + depart:
                 return feu
 
+        # Aucun feu correspondant à la position n'a été trouvé
         return None
 
 
@@ -73,6 +119,8 @@ class Carrefour:
 # 3. ROUTES ET POSITIONS DES CARREFOURS
 # ==================================================
 
+# Représentation du réseau routier sous forme de graphe.
+# Chaque intersection est associée à ses voisines et au coût du trajet.
 routes = {
     "A": [("B", 5)],
     "B": [("A", 5), ("C", 4), ("D", 6), ("E", 3)],
@@ -87,6 +135,7 @@ routes = {
 }
 
 
+# Coordonnées graphiques de chaque intersection dans la simulation
 positions = {
     "I": (100, 70),
     "F": (100, 230),
@@ -110,6 +159,7 @@ feux = []
 
 numero_feu = 1
 
+# Parcours du graphe pour créer les feux et les segments routiers
 for depart in routes:
 
     for arrivee, cout in routes[depart]:
@@ -145,14 +195,16 @@ for depart in routes:
             numero_feu += 1
 
 
-# Un carrefour contenant les feux de la maquette
+# Création d'un carrefour regroupant les feux de la maquette
 carrefour = Carrefour(1, feux)
 
 
-# Rechercher un segment entre deux carrefours
 
 def trouver_segment(depart, arrivee):
-
+    """
+    Recherche le segment reliant deux intersections.
+    La recherche prend en compte les deux sens de circulation.
+    """
     for segment in segments:
 
         if segment["depart"] == depart and segment["arrivee"] == arrivee:
@@ -169,6 +221,10 @@ def trouver_segment(depart, arrivee):
 # ==================================================
 
 def dijkstra(routes, depart, destination):
+    """
+    Calcule le chemin de coût minimal entre deux intersections
+    à partir du graphe routier et retourne le chemin ainsi que son coût.
+    """
 
     # On donne une distance infinie à chaque carrefour
     distances = {}
@@ -200,6 +256,7 @@ def dijkstra(routes, depart, destination):
                 if noeud is None or distances[n] < distances[noeud]:
                     noeud = n
 
+        # Arrêt lorsqu'il ne reste plus d'intersection accessible
         if noeud is None or distances[noeud] == float("inf"):
             break
 
@@ -237,12 +294,20 @@ def dijkstra(routes, depart, destination):
 # ==================================================
 
 class CalculThread(QThread):
+    """
+    Thread chargé d'envoyer une demande de calcul de trajet au serveur
+    sans bloquer l'interface graphique pendant son traitement.
+    """
 
+    # Signal envoyé à la fenêtre principale lorsque le calcul est terminé
     resultat = pyqtSignal(int)
 
     def __init__(self, identifiant, depart, destination,
                  mutex, resultats_partages, semaphore):
-
+        """
+        Initialise le thread avec les informations du trajet
+        et les outils de synchronisation utilisés entre les threads.
+        """
         super().__init__()
 
         self.identifiant = identifiant
@@ -254,6 +319,10 @@ class CalculThread(QThread):
         self.semaphore = semaphore
 
     def run(self):
+        """
+        Exécute la demande de trajet auprès du serveur, récupère le résultat
+        et le stocke dans le dictionnaire partagé de manière sécurisée.
+        """
 
         # Attendre qu'une place soit disponible
         self.semaphore.acquire()
@@ -266,6 +335,7 @@ class CalculThread(QThread):
                     self.destination
                 )
 
+                # Transformer une réponse d'erreur en résultat exploitable
                 if "erreur" in reponse:
                     resultat = {
                         "chemin": [],
@@ -274,6 +344,7 @@ class CalculThread(QThread):
                     }
 
                 else:
+                    # Récupérer le chemin et son coût si le calcul a réussi
                     resultat = {
                         "chemin": reponse["chemin"],
                         "cout": reponse["cout"],
@@ -282,6 +353,7 @@ class CalculThread(QThread):
 
             except (OSError, ValueError, KeyError) as erreur:
 
+                # Enregistrer l'erreur rencontrée pendant la communication
                 resultat = {
                     "chemin": [],
                     "cout": None,
@@ -295,12 +367,14 @@ class CalculThread(QThread):
                 self.resultats_partages[self.identifiant] = resultat
 
             finally:
+                # Libérer le mutex même si l'enregistrement échoue
                 self.mutex.unlock()
 
         finally:
             # Libérer le sémaphore
             self.semaphore.release()
 
+        # Informer la fenêtre principale que le résultat est disponible
         self.resultat.emit(self.identifiant)
 
 
@@ -311,8 +385,16 @@ class CalculThread(QThread):
 # ==================================================
 
 class Simulation(QWidget):
+    """
+    Gère la simulation graphique du réseau routier, des feux
+    de circulation, des voitures et des ambulances.
+    """
 
     def __init__(self, ambulances):
+        """
+        Initialise la fenêtre de simulation, prépare les éléments
+        graphiques et démarre le déplacement automatique des véhicules.
+        """
         super().__init__()
 
         self.ambulances = ambulances
@@ -369,13 +451,17 @@ class Simulation(QWidget):
     # ----------------------------------------------
 
     def dessiner_routes(self):
-
+        """
+        Dessine les routes du réseau sur la scène graphique
+        et affiche le coût associé à chaque segment.
+        """
         for segment in segments:
 
             depart = segment["depart"]
             arrivee = segment["arrivee"]
             cout = segment["cout"]
 
+            # Récupération des coordonnées des deux extrémités de la route
             x1, y1 = positions[depart]
             x2, y2 = positions[arrivee]
 
@@ -404,7 +490,10 @@ class Simulation(QWidget):
             )
 
     def dessiner_panneaux(self):
-
+        """
+        Crée les panneaux d'information associés aux routes.
+        Leur texte pourra être modifié pendant le passage des ambulances.
+        """
         for segment in segments:
             depart = segment["depart"]
             arrivee = segment["arrivee"]
@@ -441,13 +530,19 @@ class Simulation(QWidget):
             # Garder les deux éléments dans le segment
             segment["panneau_fond"] = fond
             segment["panneau_texte"] = texte
+
+
     # ----------------------------------------------
     # DESSINER LES FEUX
     # ----------------------------------------------
 
     def dessiner_feux(self):
+        """
+        Dessine les feux de circulation sur les routes.
+        Les intersections situées aux extrémités ne possèdent pas de feu.
+        """
 
-        # Pas de feu aux extrémités I, H, G, D, A et J
+        # Intersections aux extrémités qui ne possèdent pas de feu
         extremites_sans_feu = ["I", "H", "G", "D", "A", "J"]
 
         for segment in segments:
@@ -495,17 +590,22 @@ class Simulation(QWidget):
     # ----------------------------------------------
 
     def dessiner_carrefours(self):
-
+        """
+        Dessine les intersections du réseau routier
+        et affiche leur identifiant sur la scène graphique.
+        """
         for nom in positions:
 
             x, y = positions[nom]
 
+            # Représentation graphique de l'intersection
             self.scene.addEllipse(
                 x - 12, y - 12, 24, 24,
                 QPen(Qt.GlobalColor.black, 2),
                 QBrush(QColor("#f5f5f5"))
             )
 
+            # Affichage du nom de l'intersection
             texte = self.scene.addText(nom)
 
             texte.setFont(QFont("Arial", 12, QFont.Weight.Bold))
@@ -517,7 +617,11 @@ class Simulation(QWidget):
     # ----------------------------------------------
 
     def creer_voitures(self):
-
+        """
+        Crée les voitures de la simulation avec leurs trajets
+        prédéfinis et leurs couleurs respectives.
+        """
+        # Définition des parcours suivis par les voitures
         chemins = [
             ["A", "B", "C", "F", "E", "B", "D", "B", "A"],
             ["D", "B", "E", "G", "E", "F", "C", "B", "D"],
@@ -528,6 +632,7 @@ class Simulation(QWidget):
 
         for i in range(len(chemins)):
 
+            # Création graphique de la voiture
             voiture = QGraphicsRectItem(-8, -5, 16, 10)
 
             voiture.setPen(QPen(Qt.GlobalColor.black))
@@ -537,6 +642,7 @@ class Simulation(QWidget):
 
             self.voitures.append(voiture)
 
+            # Mémorisation du trajet et de la progression de la voiture
             donnees = {
                 "chemin": chemins[i],
                 "etape": 0,
@@ -551,7 +657,10 @@ class Simulation(QWidget):
     # ----------------------------------------------
 
     def creer_ambulances(self):
-
+        """
+        Crée les représentations graphiques des ambulances
+        et initialise les informations nécessaires à leur déplacement.
+        """
         for ambulance in self.ambulances:
 
             # Dessiner l'ambulance
@@ -567,7 +676,7 @@ class Simulation(QWidget):
 
             self.scene.addItem(ambulance["item"])
 
-            # Ajouter une croix rouge
+            # Ajouter une croix rouge pour identifier l'ambulance
             ambulance["croix"] = self.scene.addText("+")
 
             ambulance["croix"].setDefaultTextColor(
@@ -580,11 +689,12 @@ class Simulation(QWidget):
 
             self.scene.addItem(ambulance["croix"])
 
+            # Initialisation de l'étape et de la progression sur le trajet
             ambulance["etape"] = 0
             ambulance["progression"] = 0.0
             ambulance["terminee"] = len(ambulance["chemin"]) < 2
 
-            # Mémoriser les routes déjà parcourues
+            # Mémoriser les routes déjà parcourues par l'ambulance
             ambulance["routes_parcourues"] = []
 
             if ambulance["terminee"]:
@@ -598,7 +708,10 @@ class Simulation(QWidget):
     # ----------------------------------------------
 
     def placer_ambulance(self, ambulance):
-
+        """
+        Place une ambulance sur son intersection de départ
+        et positionne également sa croix rouge.
+        """
         chemin = ambulance["chemin"]
 
         nom = chemin[ambulance["etape"]]
@@ -615,7 +728,11 @@ class Simulation(QWidget):
     # ----------------------------------------------
 
     def mettre_a_jour_feux(self):
-
+        """
+        Actualise les feux en fonction des trajets des ambulances.
+        Les routes prioritaires passent au vert et les routes concernées
+        par les restrictions de circulation passent au rouge.
+        """
         routes_rouges = []
         routes_vertes = []
 
@@ -685,6 +802,7 @@ class Simulation(QWidget):
 
             index = 0
 
+            # Calculer l'indice des lampes dans la liste générale
             for autre_segment in segments:
 
                 if autre_segment == segment:
@@ -714,7 +832,10 @@ class Simulation(QWidget):
     # ----------------------------------------------
 
     def avancer_voiture(self, voiture, donnees):
-
+        """
+        Fait avancer une voiture sur son parcours prédéfini.
+        La voiture attend lorsqu'elle rencontre un feu rouge au début d'une route.
+        """
         chemin = donnees["chemin"]
 
         if len(chemin) < 2:
@@ -745,12 +866,13 @@ class Simulation(QWidget):
         x1, y1 = positions[depart]
         x2, y2 = positions[arrivee]
 
+        # Calcul de la position intermédiaire entre les deux intersections
         x = x1 + (x2 - x1) * t
         y = y1 + (y2 - y1) * t
 
         voiture.setPos(x, y)
 
-        # Passer au prochain segment
+        # Passer au prochain segment lorsque la voiture arrive à destination
         if donnees["progression"] >= 1:
 
             donnees["etape"] += 1
@@ -762,7 +884,11 @@ class Simulation(QWidget):
     # ----------------------------------------------
 
     def avancer_ambulance(self, ambulance):
-
+        """
+        Fait avancer une ambulance sur le chemin calculé par le serveur.
+        Met également à jour sa position, les panneaux d'information
+        et son état lorsqu'elle atteint sa destination.
+        """
         if ambulance["terminee"]:
             return
 
@@ -782,10 +908,11 @@ class Simulation(QWidget):
         arrivee = chemin[etape + 1]
 
         ambulance["progression"] += 0.005
+
         # Récupérer le segment sur lequel se trouve l'ambulance
         segment = trouver_segment(depart, arrivee)
 
-        # Quand l'ambulance approche de la fin du segment
+        # Afficher un message d'avertissement lorsque l'ambulance approche
         if ambulance["progression"] >= 0.80:
             segment["panneau_texte"].setPlainText(
                 "ATTENTION !\n"
@@ -799,6 +926,7 @@ class Simulation(QWidget):
         x1, y1 = positions[depart]
         x2, y2 = positions[arrivee]
 
+        # Calcul de la position de l'ambulance entre les deux intersections
         x = x1 + (x2 - x1) * t
         y = y1 + (y2 - y1) * t
 
@@ -810,7 +938,7 @@ class Simulation(QWidget):
             # Effacer le message après le passage
             segment["panneau_texte"].setPlainText("")
 
-            # Mémoriser la route qu'elle vient de parcourir
+            # Mémoriser la route que l'ambulance  vient de parcourir
             segment = trouver_segment(depart, arrivee)
 
             ambulance["routes_parcourues"].append(segment)
@@ -818,7 +946,7 @@ class Simulation(QWidget):
             ambulance["etape"] += 1
             ambulance["progression"] = 0.0
 
-            # Vérifier si elle est arrivée à destination
+            # Vérifier si l'ambulance a atteint sa destination
             if ambulance["etape"] >= len(chemin) - 1:
 
                 ambulance["terminee"] = True
@@ -832,6 +960,10 @@ class Simulation(QWidget):
     # ----------------------------------------------
 
     def avancer(self):
+        """
+        Met à jour l'ensemble de la simulation à chaque déclenchement
+        du timer : feux, voitures et ambulances.
+        """
 
         # Mettre à jour les feux
         self.mettre_a_jour_feux()
@@ -849,11 +981,12 @@ class Simulation(QWidget):
 
             self.avancer_ambulance(ambulance)
 
-        # Vérifier si toutes les ambulances sont arrivées
+        # Vérifier si toutes les ambulances ont terminé leur trajet
         if len(self.finis) == len(self.ambulances):
 
             self.mettre_a_jour_feux()
 
+            # Arrêter le timer et afficher le message de fin
             self.timer.stop()
 
             self.info.setText(
@@ -866,23 +999,33 @@ class Simulation(QWidget):
 # ==================================================
 
 class FenetrePrincipale(QWidget):
-
+    """
+    Représente la fenêtre principale de l'application.
+    Elle permet d'ajouter des ambulances, de calculer leurs trajets
+    et de lancer ou réinitialiser la simulation.
+    """
     def __init__(self):
+        """
+        Initialise l'interface graphique, les éléments de gestion
+        des threads et les différentes commandes de l'application.
+        """
         super().__init__()
 
         self.setWindowTitle("Gestion des véhicules d'urgence")
         self.resize(1400, 850)
 
-        # Listes qui mémorisent les données
+        # Listes qui mémorisent les demandes, les threads et les résultats
         self.demandes = []
         self.threads = []
         self.calculs = []
-        #Mutex pour protéger les résultats partagés
+
+        # Mutex utilisé pour protéger l'accès aux résultats partagés
         self.mutex = QMutex()
 
-        #Dictionnaires contenant les résultats des threads
+        #Dictionnaires contenant les résultats transmis par les threads
         self.resultats_partages = {}
 
+        # Limite à deux le nombre de demandes traitées simultanément
         self.semaphore = QSemaphore(2)
 
         self.prochaine_id = 1
@@ -909,6 +1052,7 @@ class FenetrePrincipale(QWidget):
 
         gauche.addWidget(QLabel("Départ :"))
 
+        # Liste déroulante permettant de choisir le carrefour de départ
         self.depart = QComboBox()
         self.depart.addItems(routes.keys())
 
@@ -916,11 +1060,13 @@ class FenetrePrincipale(QWidget):
 
         gauche.addWidget(QLabel("Destination :"))
 
+        # Liste déroulante permettant de choisir la destination
         self.destination = QComboBox()
         self.destination.addItems(routes.keys())
 
         gauche.addWidget(self.destination)
 
+        # Boutons permettant de gérer les ambulances et la simulation
         self.ajouter = QPushButton("Ajouter une ambulance")
         self.lancer = QPushButton("Calculer et démarrer")
         self.reinitialiser = QPushButton("Nouvelle simulation")
@@ -931,11 +1077,13 @@ class FenetrePrincipale(QWidget):
 
         gauche.addWidget(QLabel("Ambulances ajoutées :"))
 
+        # Liste des ambulances ajoutées par l'utilisateur
         self.liste = QListWidget()
         gauche.addWidget(self.liste)
 
         gauche.addWidget(QLabel("Résultats de Dijkstra :"))
 
+        # Liste affichant les chemins calculés et leurs coûts
         self.resultats = QListWidget()
         gauche.addWidget(self.resultats)
 
@@ -955,6 +1103,7 @@ class FenetrePrincipale(QWidget):
 
         droite.addWidget(titre_simulation)
 
+        # Message affiché avant le lancement de la simulation
         self.placeholder = QLabel(
             "Ajoute une ambulance puis clique sur Calculer et démarrer."
         )
@@ -966,6 +1115,7 @@ class FenetrePrincipale(QWidget):
 
         self.panneau_droit = panneau_droit
 
+        # Ajout des deux panneaux à la fenêtre avec leurs proportions
         principal.addWidget(panneau_gauche, 1)
         principal.addWidget(panneau_droit, 3)
 
@@ -973,6 +1123,7 @@ class FenetrePrincipale(QWidget):
         # CONNEXION DES BOUTONS
         # ==========================================
 
+        # Associer chaque bouton à la méthode correspondante
         self.ajouter.clicked.connect(self.ajouter_ambulance)
         self.lancer.clicked.connect(self.lancer_simulation)
         self.reinitialiser.clicked.connect(self.nouvelle_simulation)
@@ -983,10 +1134,14 @@ class FenetrePrincipale(QWidget):
     # ----------------------------------------------
 
     def ajouter_ambulance(self):
-
+        """
+        Ajoute une nouvelle ambulance à la liste des demandes
+        après avoir vérifié que le départ et la destination sont différents.
+        """
         depart = self.depart.currentText()
         destination = self.destination.currentText()
 
+        # Vérifier que le départ et la destination sont différents
         if depart == destination:
 
             QMessageBox.information(
@@ -997,6 +1152,7 @@ class FenetrePrincipale(QWidget):
 
             return
 
+        # Attribuer un identifiant unique à la nouvelle ambulance
         identifiant = self.prochaine_id
 
         self.prochaine_id += 1
@@ -1011,6 +1167,7 @@ class FenetrePrincipale(QWidget):
 
         self.demandes.append(ambulance)
 
+        # Afficher les informations de l'ambulance dans la liste
         self.liste.addItem(
             f"Ambulance {identifiant} : {depart} -> {destination}"
         )
@@ -1021,7 +1178,12 @@ class FenetrePrincipale(QWidget):
     # ----------------------------------------------
 
     def lancer_simulation(self):
+        """
+        Lance les calculs de trajets en créant un thread par ambulance.
+        Les demandes sont envoyées au serveur sans bloquer l'interface graphique.
+        """
 
+        # Vérifier qu'au moins une ambulance a été ajoutée
         if len(self.demandes) == 0:
 
             QMessageBox.information(
@@ -1032,11 +1194,13 @@ class FenetrePrincipale(QWidget):
 
             return
 
+        # Désactiver les boutons pendant le traitement des demandes
         self.lancer.setEnabled(False)
         self.ajouter.setEnabled(False)
 
         self.resultats.clear()
 
+        # Réinitialiser les listes utilisées pour les nouveaux calculs
         self.calculs = []
         self.threads = []
         self.resultats_partages.clear()
@@ -1053,6 +1217,7 @@ class FenetrePrincipale(QWidget):
                 self.semaphore
             )
 
+            # Connecter le signal du thread à la méthode de réception
             thread.resultat.connect(self.recevoir_resultat)
 
             self.threads.append(thread)
@@ -1068,8 +1233,13 @@ class FenetrePrincipale(QWidget):
     # ----------------------------------------------
 
     def recevoir_resultat(self, identifiant):
+        """
+        Récupère et affiche le résultat d'un calcul de trajet.
+        Lorsque toutes les demandes sont traitées, prépare les ambulances
+        dont le trajet est valide pour lancer la simulation.
+        """
 
-        # Accéder au dictionnaire partagé
+        # Accéder au dictionnaire partagé de manière sécurisée
         self.mutex.lock()
 
         try:
@@ -1078,7 +1248,7 @@ class FenetrePrincipale(QWidget):
         finally:
             self.mutex.unlock()
 
-        # Récupérer les informations du résultat
+        # Récupérer les informations transmises par le thread
         chemin = resultat["chemin"]
         cout = resultat["cout"]
         erreur = resultat.get("erreur")
@@ -1091,12 +1261,14 @@ class FenetrePrincipale(QWidget):
 
         self.calculs.append(resultat)
 
+        # Afficher une erreur si le calcul n'a pas abouti
         if erreur:
 
             self.resultats.addItem(
                 f"Ambulance {identifiant} : erreur - {erreur}"
             )
 
+        # Afficher le chemin et son coût lorsque le calcul a réussi
         elif len(chemin) > 0:
 
             texte = " -> ".join(chemin)
@@ -1114,11 +1286,13 @@ class FenetrePrincipale(QWidget):
         # Vérifier si tous les calculs sont terminés
         if len(self.calculs) == len(self.demandes):
 
+            # Réactiver les boutons une fois les calculs terminés
             self.lancer.setEnabled(True)
             self.ajouter.setEnabled(True)
 
             ambulances_valides = []
 
+            # Conserver uniquement les ambulances ayant un chemin valide
             for resultat in self.calculs:
 
                 if len(resultat["chemin"]) > 0:
@@ -1133,6 +1307,7 @@ class FenetrePrincipale(QWidget):
 
                             ambulances_valides.append(donnees)
 
+            # Lancer la simulation si au moins un trajet est valide
             if len(ambulances_valides) > 0:
 
                 self.afficher_simulation(ambulances_valides)
@@ -1150,7 +1325,10 @@ class FenetrePrincipale(QWidget):
     # ----------------------------------------------
 
     def afficher_simulation(self, ambulances):
-
+        """
+        Affiche la simulation graphique des ambulances ayant obtenu
+        un trajet valide, en remplaçant une éventuelle ancienne simulation.
+        """
         # Supprimer l'ancienne simulation si nécessaire
         if self.simulation is not None:
 
@@ -1163,7 +1341,7 @@ class FenetrePrincipale(QWidget):
 
         self.placeholder.hide()
 
-        # Créer la nouvelle simulation
+        # Créer et afficher la nouvelle simulation
         self.simulation = Simulation(ambulances)
 
         self.panneau_droit.layout().addWidget(self.simulation)
@@ -1174,7 +1352,12 @@ class FenetrePrincipale(QWidget):
     # ----------------------------------------------
 
     def nouvelle_simulation(self):
+        """
+        Réinitialise l'application pour permettre de préparer
+        une nouvelle simulation avec de nouvelles demandes d'ambulances.
+        """
 
+        # Arrêter et supprimer la simulation actuelle si elle existe
         if self.simulation is not None:
 
             self.simulation.timer.stop()
@@ -1186,6 +1369,7 @@ class FenetrePrincipale(QWidget):
 
             self.simulation = None
 
+        # Vider les listes contenant les demandes et les résultats
         self.demandes.clear()
         self.calculs.clear()
         self.threads.clear()
@@ -1193,8 +1377,10 @@ class FenetrePrincipale(QWidget):
         self.liste.clear()
         self.resultats.clear()
 
+        # Réinitialiser l'identifiant des prochaines ambulances
         self.prochaine_id = 1
 
+        # Réafficher le message initial et réactiver les boutons
         self.placeholder.show()
 
         self.lancer.setEnabled(True)
@@ -1207,10 +1393,14 @@ class FenetrePrincipale(QWidget):
 
 if __name__ == "__main__":
 
+    # Création de l'application PyQt6
     app = QApplication(sys.argv)
 
+    # Création de la fenêtre principale
     fenetre = FenetrePrincipale()
 
+    # Affichage de la fenêtre
     fenetre.show()
 
+    # Lancement de la boucle principale de l'interface graphique
     sys.exit(app.exec())
