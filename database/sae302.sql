@@ -51,6 +51,8 @@ CREATE TABLE `evenements` (
 SET @OLD_AUTOCOMMIT=@@AUTOCOMMIT, @@AUTOCOMMIT=0;
 LOCK TABLES `evenements` WRITE;
 /*!40000 ALTER TABLE `evenements` DISABLE KEYS */;
+(1,'2026-10-21 13:57:15','urgence','B','G','B -> E -> G',5,NULL,'Demande de priorité d\'un véhicule d\'urgence'),
+(2,'2026-10-21 14:01:05','urgence','H','A','H -> E -> B -> A',14,NULL,'Demande de priorité d\'un véhicule d\'urgence'),
 /*!40000 ALTER TABLE `evenements` ENABLE KEYS */;
 UNLOCK TABLES;
 COMMIT;
