@@ -349,6 +349,7 @@ class Simulation(QWidget):
 
         # Dessiner les différents éléments
         self.dessiner_routes()
+        self.dessiner_panneaux()
         self.dessiner_feux()
         self.dessiner_carrefours()
 
@@ -402,7 +403,44 @@ class Simulation(QWidget):
                 (y1 + y2) / 2 - 21
             )
 
+    def dessiner_panneaux(self):
 
+        for segment in segments:
+            depart = segment["depart"]
+            arrivee = segment["arrivee"]
+
+            x1, y1 = positions[depart]
+            x2, y2 = positions[arrivee]
+
+            # Positionner le panneau vers la fin de la route
+            x = x1 + (x2 - x1) * 0.80
+            y = y1 + (y2 - y1) * 0.80
+
+            # Décaler le panneau sur le côté de la route
+            dx = x2 - x1
+            dy = y2 - y1
+            longueur = (dx ** 2 + dy ** 2) ** 0.5
+
+            x += (dy / longueur) * 25
+            y -= (dx / longueur) * 25
+
+            # Créer le fond noir du panneau
+            fond = self.scene.addRect(
+                x - 45, y - 20, 90, 40,
+                QPen(Qt.GlobalColor.black),
+                QBrush(QColor("black"))
+            )
+
+            # Créer le texte du panneau
+            texte = self.scene.addText("")
+            texte.setDefaultTextColor(QColor("yellow"))
+            texte.setFont(QFont("Arial", 7, QFont.Weight.Bold))
+            texte.setTextWidth(85)
+            texte.setPos(x - 42, y - 17)
+
+            # Garder les deux éléments dans le segment
+            segment["panneau_fond"] = fond
+            segment["panneau_texte"] = texte
     # ----------------------------------------------
     # DESSINER LES FEUX
     # ----------------------------------------------
@@ -744,6 +782,17 @@ class Simulation(QWidget):
         arrivee = chemin[etape + 1]
 
         ambulance["progression"] += 0.005
+        # Récupérer le segment sur lequel se trouve l'ambulance
+        segment = trouver_segment(depart, arrivee)
+
+        # Quand l'ambulance approche de la fin du segment
+        if ambulance["progression"] >= 0.80:
+            segment["panneau_texte"].setPlainText(
+                "ATTENTION !\n"
+                "AMBULANCE\n"
+                "DÉCALEZ-VOUS SUR\n"
+                "LA PISTE CYCLABLE"
+            )
 
         t = ambulance["progression"]
 
@@ -758,6 +807,8 @@ class Simulation(QWidget):
 
         # Quand l'ambulance arrive au carrefour suivant
         if ambulance["progression"] >= 1:
+            # Effacer le message après le passage
+            segment["panneau_texte"].setPlainText("")
 
             # Mémoriser la route qu'elle vient de parcourir
             segment = trouver_segment(depart, arrivee)
