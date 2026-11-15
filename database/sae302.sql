@@ -41,7 +41,7 @@ CREATE TABLE `evenements` (
   `cout` float DEFAULT NULL,
   `details` varchar(255) DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_uca1400_ai_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_uca1400_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -51,10 +51,6 @@ CREATE TABLE `evenements` (
 SET @OLD_AUTOCOMMIT=@@AUTOCOMMIT, @@AUTOCOMMIT=0;
 LOCK TABLES `evenements` WRITE;
 /*!40000 ALTER TABLE `evenements` DISABLE KEYS */;
-INSERT INTO `evenements` VALUES
-(2,'2026-11-13 14:51:47','urgence','H','J','H -> E -> B -> C -> J',18,'Demande de priorité d\'un véhicule d\'urgence'),
-(5,'2026-11-13 15:04:34','urgence','I','G','I -> F -> E -> G',12,'Demande de priorité d\'un véhicule d\'urgence'),
-(6,'2026-11-15 14:55:31','urgence','G','I','G -> E -> F -> I',12,'Demande de priorité d\'un véhicule d\'urgence');
 /*!40000 ALTER TABLE `evenements` ENABLE KEYS */;
 UNLOCK TABLES;
 COMMIT;
@@ -69,7 +65,8 @@ SET AUTOCOMMIT=@OLD_AUTOCOMMIT;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*M!100616 SET NOTE_VERBOSITY=@OLD_NOTE_VERBOSITY */;
 
--- Dump completed on 2026-11-15 15:06:13
+-- Dump completed on 2026-11-12 23:43:31
+
 
 -- Création de l'utilisateur de l'application
 CREATE USER IF NOT EXISTS 'bc'@'localhost'
