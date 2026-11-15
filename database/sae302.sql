@@ -69,9 +69,15 @@ SET AUTOCOMMIT=@OLD_AUTOCOMMIT;
 
 -- Dump completed on 2026-11-12 23:43:31
 
+-- Création de l'utilisateur de l'application
+CREATE USER IF NOT EXISTS 'bc'@'localhost'
+IDENTIFIED BY 'galactique';
+
 CREATE USER IF NOT EXISTS 'bc'@'127.0.0.1'
 IDENTIFIED BY 'galactique';
 
+-- Attribution des droits nécessaires
+GRANT SELECT, INSERT ON sae302.* TO 'bc'@'localhost';
 GRANT SELECT, INSERT ON sae302.* TO 'bc'@'127.0.0.1';
 
 FLUSH PRIVILEGES;
