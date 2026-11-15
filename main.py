@@ -378,7 +378,20 @@ class CalculThread(QThread):
         self.resultat.emit(self.identifiant)
 
 
+class PanneauClickable(QGraphicsRectItem):
 
+    def __init__(self, x, y, largeur, hauteur, action):
+        super().__init__(x, y, largeur, hauteur)
+
+        self.action = action
+
+        self.setAcceptedMouseButtons(
+            Qt.MouseButton.LeftButton
+        )
+
+    def mousePressEvent(self, event):
+        self.action()
+        event.accept()
 
 # ==================================================
 # 7. SIMULATION DES VOITURES ET DES AMBULANCES
@@ -425,6 +438,40 @@ class Simulation(QWidget):
 
         layout.addWidget(self.vue)
 
+        # Créer l'écran de zoom
+        self.zoom_widget = QWidget()
+        zoom_layout = QVBoxLayout(self.zoom_widget)
+
+        self.message_zoom = QLabel()
+        self.message_zoom.setAlignment(
+            Qt.AlignmentFlag.AlignCenter
+        )
+
+        self.message_zoom.setStyleSheet("""
+            background-color: yellow;
+            color: black;
+            font-size: 24px;
+            font-weight: bold;
+            padding: 40px;
+        """)
+
+        zoom_layout.addWidget(self.message_zoom)
+
+        # Bouton pour revenir à la simulation
+        self.bouton_retour = QPushButton(
+            "Retour à la simulation"
+        )
+
+        self.bouton_retour.clicked.connect(
+            self.retour_simulation
+        )
+
+        zoom_layout.addWidget(self.bouton_retour)
+
+        layout.addWidget(self.zoom_widget)
+
+        self.zoom_widget.hide()
+
         # Tous les feux sont verts au début
         for feu in feux:
             feu.passer_au_vert()
@@ -449,7 +496,26 @@ class Simulation(QWidget):
     # ----------------------------------------------
     # DESSINER LES ROUTES
     # ----------------------------------------------
+    def afficher_zoom(self, segment):
 
+        # Ne pas ouvrir le zoom si le panneau est noir
+        if not segment["actif"]:
+            return
+
+        self.message_zoom.setText(
+            "ATTENTION !\n\n"
+            "AMBULANCE\n\n"
+            "DÉCALEZ-VOUS SUR\n"
+            "LA PISTE CYCLABLE"
+        )
+
+        self.vue.hide()
+        self.zoom_widget.show()
+
+    def retour_simulation(self):
+
+        self.zoom_widget.hide()
+        self.vue.show()
     def dessiner_routes(self):
         """
         Dessine les routes du réseau sur la scène graphique
@@ -490,10 +556,7 @@ class Simulation(QWidget):
             )
 
     def dessiner_panneaux(self):
-        """
-        Crée les panneaux d'information associés aux routes.
-        Leur texte pourra être modifié pendant le passage des ambulances.
-        """
+
         for segment in segments:
             depart = segment["depart"]
             arrivee = segment["arrivee"]
@@ -505,31 +568,27 @@ class Simulation(QWidget):
             x = x1 + (x2 - x1) * 0.80
             y = y1 + (y2 - y1) * 0.80
 
-            # Décaler le panneau sur le côté de la route
+            # Décaler le panneau pour ne pas toucher la route
             dx = x2 - x1
             dy = y2 - y1
             longueur = (dx ** 2 + dy ** 2) ** 0.5
 
-            x += (dy / longueur) * 25
-            y -= (dx / longueur) * 25
+            x += (dy / longueur) * 35
+            y -= (dx / longueur) * 35
 
-            # Créer le fond noir du panneau
-            fond = self.scene.addRect(
-                x - 45, y - 20, 90, 40,
-                QPen(Qt.GlobalColor.black),
-                QBrush(QColor("black"))
+            # Créer un petit panneau noir cliquable
+            fond = PanneauClickable(
+                x - 15, y - 10, 30, 20,
+                lambda s=segment: self.afficher_zoom(s)
             )
 
-            # Créer le texte du panneau
-            texte = self.scene.addText("")
-            texte.setDefaultTextColor(QColor("yellow"))
-            texte.setFont(QFont("Arial", 7, QFont.Weight.Bold))
-            texte.setTextWidth(85)
-            texte.setPos(x - 42, y - 17)
+            fond.setPen(QPen(Qt.GlobalColor.black))
+            fond.setBrush(QBrush(QColor("black")))
 
-            # Garder les deux éléments dans le segment
+            self.scene.addItem(fond)
+
             segment["panneau_fond"] = fond
-            segment["panneau_texte"] = texte
+            segment["actif"] = False
 
 
     # ----------------------------------------------
@@ -912,13 +971,12 @@ class Simulation(QWidget):
         # Récupérer le segment sur lequel se trouve l'ambulance
         segment = trouver_segment(depart, arrivee)
 
-        # Afficher un message d'avertissement lorsque l'ambulance approche
-        if ambulance["progression"] >= 0.80:
-            segment["panneau_texte"].setPlainText(
-                "ATTENTION !\n"
-                "AMBULANCE\n"
-                "DÉCALEZ-VOUS SUR\n"
-                "LA PISTE CYCLABLE"
+        # Activer le panneau lorsque l'ambulance approche
+        if ambulance["progression"] >= 0.55:
+            segment["actif"] = True
+
+            segment["panneau_fond"].setBrush(
+                QBrush(QColor("yellow"))
             )
 
         t = ambulance["progression"]
@@ -933,10 +991,14 @@ class Simulation(QWidget):
         ambulance["item"].setPos(x, y)
         ambulance["croix"].setPos(x - 7, y - 18)
 
-        # Quand l'ambulance arrive au carrefour suivant
         if ambulance["progression"] >= 1:
-            # Effacer le message après le passage
-            segment["panneau_texte"].setPlainText("")
+
+            # Désactiver le panneau après le passage
+            segment["actif"] = False
+
+            segment["panneau_fond"].setBrush(
+                QBrush(QColor("black"))
+            )
 
             # Mémoriser la route que l'ambulance  vient de parcourir
             segment = trouver_segment(depart, arrivee)
