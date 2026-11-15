@@ -5,7 +5,6 @@ de calculer les trajets et d'enregistrer les événements en base de données.
 
 import socket
 import json
-import threading
 
 from commun.gestion_trajet import routes, dijkstra
 from commun.base_donnees import enregistrer_evenement
