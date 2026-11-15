@@ -10,10 +10,6 @@ import threading
 from commun.gestion_trajet import routes, dijkstra
 from commun.base_donnees import enregistrer_evenement
 
-from commun.export_csv import (
-    exporter_evenements_csv,
-    surveiller_evenements
-)
 
 
 def traiter_demande(demande):
@@ -69,13 +65,6 @@ def lancer_serveur():
 
     print("Serveur en attente de demandes...")
 
-    # Lancement de la surveillance des événements pour leur export CSV
-    thread_csv = threading.Thread(
-        target=surveiller_evenements,
-        daemon=True
-    )
-
-    thread_csv.start()
 
     try:
         # Boucle principale : attente et traitement des connexions clientes
