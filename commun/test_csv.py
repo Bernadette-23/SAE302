@@ -101,4 +101,4 @@ def surveiller_evenements():
 
     while True:
         exporter_evenements_csv()
-        time.sleep(5)
+        time.sleep(10)
