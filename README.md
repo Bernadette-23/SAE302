@@ -171,6 +171,32 @@ Cliquer sur le bouton **« Calculer et démarrer »**. La demande est transmise 
 ![etape_3.png](images_readme/etape_3.png)
 
 
+### 4.4 Utilisation des panneaux d'avertissement
+
+Lors de la simulation, des panneaux d'avertissement sont placés à proximité des routes afin de prévenir les autres usagers de l'arrivée d'une ambulance.
+
+**4.4.1. Repérer un panneau jaune**
+
+Lorsqu'une ambulance approche, le panneau concerné devient **jaune** pour signaler une situation d'urgence.
+
+Pour consulter le message d'avertissement, cliquez directement sur le panneau jaune dans la simulation.
+
+![alerte_1.png](images_readme/alerte_1.png)
+
+**4.4.2. Consulter le message d'urgence**
+
+Une fenêtre affiche alors le message suivant :
+
+![alerte_2.png](images_readme/alerte_2.png)
+
+Ce message informe les usagers qu'un véhicule d'urgence arrive et qu'ils doivent lui faciliter le passage.
+
+
+**4.4.3. Revenir à la simulation**
+
+Après avoir consulté le message, cliquez sur le bouton **« Retour à la simulation »** pour revenir à l'affichage du réseau routier.
+
+
 
 
 ### 5. Arrêt de l'application
@@ -189,13 +215,15 @@ SAE302/
 ├── commun/
 │   ├── __init__.py
 │   ├── base_donnees.py
-│   └── protocole.py
+│   ├── export_csv.py
+│   └── gestion_trajet.py
 ├── database/
 │   └── sae302.sql
+├── exports/
+│   └── evenements.csv
 ├── serveur/
 │   ├── __init__.py
 │   └── serveur.py
-├── gestion_trajet.py
 ├── main.py
 ├── requirements.txt
 └── README.md
