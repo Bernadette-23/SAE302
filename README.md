@@ -50,7 +50,7 @@ apt install mariadb-server
 
 ### 3.3. Récupération du projet
 
-Revenir sur le compte utilisateur normal, puis cloner le dépôt GitHub :
+Revenir sur le compte **utilisateur normal**, puis cloner le dépôt GitHub :
 
 ```bash
 git clone https://github.com/Bernadette-23/SAE302.git
