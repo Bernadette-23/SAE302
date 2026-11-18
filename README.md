@@ -102,7 +102,7 @@ Vérifier que le service MariaDB fonctionne :
 systemctl status mariadb
 ```
 
-Importer le fichier SQL fourni avec le projet :
+Passer en **administrateur** et importer le fichier SQL fourni avec le projet :
 
 ```bash
 mariadb < database/sae302.sql

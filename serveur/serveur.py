@@ -9,6 +9,9 @@ import json
 from commun.gestion_trajet import routes, dijkstra
 from commun.base_donnees import enregistrer_evenement
 
+from commun.test_csv import surveiller_evenements
+import threading
+
 
 
 def traiter_demande(demande):
@@ -63,6 +66,14 @@ def lancer_serveur():
     serveur.listen(5)
 
     print("Serveur en attente de demandes...")
+
+    # Lancement de la surveillance automatique des événements CSV
+    thread_csv = threading.Thread(
+        target=surveiller_evenements,
+        daemon=True
+    )
+
+    thread_csv.start()
 
 
     try:
