@@ -108,15 +108,13 @@ Passer en **administrateur** et importer le fichier SQL fourni avec le projet :
 mariadb < database/sae302.sql
 ```
 
-**Configuration :** vérifier les paramètres de connexion à la base de données dans `commun/base_donnees.py` (adresse IP, port, utilisateur, mot de passe et nom de la base).
-
 ## 4. Utilisation de l'application
 
 L'application nécessite deux terminaux ouverts simultanément.
 
 ### 4.1. Démarrage du serveur
 
-Dans un premier terminal, se placer à la racine du projet et activer l'environnement virtuel :
+Dans un premier terminal en **utilisateur normal**, se placer à la racine du projet et activer l'environnement virtuel :
 
 ```bash
 cd SAE302
@@ -133,7 +131,7 @@ Le serveur est alors en attente de demandes des clients.
 
 ### 4.2. Démarrage de l'interface graphique
 
-Dans un deuxième terminal, se placer à la racine du projet et activer l'environnement virtuel :
+Dans un deuxième terminal en **utilisateur normal**, se placer à la racine du projet et activer l'environnement virtuel :
 
 ```bash
 cd SAE302
